@@ -1,0 +1,3 @@
+include hx3/*.py
+include LICENSE.md
+include *requirements.txt
