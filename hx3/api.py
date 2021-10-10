@@ -553,6 +553,7 @@ class Hx3Api:
 }"""
 
     def __init__(self, email, token):
+        self.__retries = 0
         self._email = email
         self._token = token
         self._transport = RequestsHTTPTransport(
@@ -569,6 +570,7 @@ class Hx3Api:
         self._access_token = None
         self._refresh_token = None
         self._ttl = None
+        self._last_refresh = 0
         self._temperature_unit = None
         self._locations = {}
         self._authenticate()
@@ -576,14 +578,29 @@ class Hx3Api:
 
     def _execute(self, query: str, values: dict = None) -> dict:
         if self._access_token:
+            if self._ttl:
+                ttl = self._ttl - (time.time() - self._last_refresh)
+                if ttl < 300:
+                    self._ttl = None
+                    self._get_new_token()
             self._transport.headers = {
                 "Authorization": f"Bearer {self._access_token}",
             }
         query = gql(query)
-        return self._client.execute(
-            query,
-            variable_values=values,
-        )
+        try:
+            ret = self._client.execute(
+                query,
+                variable_values=values,
+            )
+            self.__retries = 0
+            return ret
+        except Exception as e:  # noqa
+            if 'UNAUTHENTICATED' in f'{e}' and self.__retries < 5:
+                self.__retries += 1
+                self._authenticate()
+                return self._execute(query, values=values)
+            self.__retries = 0
+            raise e
 
     def _authenticate(self) -> None:
         mutation = """\
@@ -619,10 +636,43 @@ mutation signIn($input: SignInInput!) {
             msg = result["message"]
             logger.error(f"Failed to authenticate: {msg}")
             raise AuthError(msg)
+        self._last_refresh = time.time()
         self._access_token = data["accessToken"]
         self._refresh_token = data["refreshToken"]
         self._ttl = data["ttl"]
         self._temperature_unit = data["user"]["temperatureUnit"]
+
+    def _get_new_token(self) -> None:
+        mutation = """\
+mutation refreshToken($input: RefreshTokenInput!) {
+  refreshToken(input: $input) {
+    ... on RefreshTokenSuccess {
+      accessToken
+      refreshToken
+      ttl
+    }
+    ... on TokenInvalid {
+      message
+    }
+  }
+}"""
+        result = self._execute(
+            mutation,
+            values={
+                "input": {
+                    "token": self._refresh_token,
+                },
+            },
+        )
+        data = result["refreshToken"]
+        if "message" in result:
+            msg = result["message"]
+            logger.error(f"Failed to get new token: {msg}")
+            raise AuthError(msg)
+        self._last_refresh = time.time()
+        self._access_token = data["accessToken"]
+        self._refresh_token = data["refreshToken"]
+        self._ttl = data["ttl"]
 
     def _get_locations(self) -> [dict]:
         query = f"""\
