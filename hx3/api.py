@@ -552,7 +552,7 @@ class Hx3Api:
   accessLevel
 }"""
 
-    def __init__(self, email, token=None, access_token=None, refresh_token=None, ttl=None):
+    def __init__(self, email, token=None, access_token=None, refresh_token=None, ttl=None, last_refresh=0):
         self.__retries = 0
         self._email = email
         self._token = token
@@ -570,7 +570,7 @@ class Hx3Api:
         self._access_token = access_token
         self._refresh_token = refresh_token
         self._ttl = ttl
-        self._last_refresh = 0
+        self._last_refresh = last_refresh
         self._temperature_unit = None
         self._locations = {}
         if self._access_token:
