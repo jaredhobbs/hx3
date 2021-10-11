@@ -552,7 +552,7 @@ class Hx3Api:
   accessLevel
 }"""
 
-    def __init__(self, email, token):
+    def __init__(self, email, token=None, access_token=None, refresh_token=None, ttl=None):
         self.__retries = 0
         self._email = email
         self._token = token
@@ -567,13 +567,18 @@ class Hx3Api:
             transport=self._transport,
             fetch_schema_from_transport=True,
         )
-        self._access_token = None
-        self._refresh_token = None
-        self._ttl = None
+        self._access_token = access_token
+        self._refresh_token = refresh_token
+        self._ttl = ttl
         self._last_refresh = 0
         self._temperature_unit = None
         self._locations = {}
-        self._authenticate()
+        if self._access_token:
+            self._me()
+        elif self._token:
+            self._authenticate()
+        else:
+            raise AuthError('A valid token or access_token is required.')
         self._discover()
 
     def _execute(self, query: str, values: dict = None) -> dict:
@@ -697,6 +702,17 @@ mutation refreshToken($input: RefreshTokenInput!) {
 }}"""
         result = self._execute(query)
         return result["locations"]
+
+    def _me(self) -> None:
+        query = """\
+{
+  me {
+    temperatureUnit
+  }
+}"""
+        result = self._execute(query)
+        data = result["me"]
+        self._temperature_unit = data['temperatureUnit']
 
     def _discover(self) -> None:
         for loc in self._get_locations():
