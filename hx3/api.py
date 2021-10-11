@@ -636,6 +636,10 @@ mutation signIn($input: SignInInput!) {
             msg = result["message"]
             logger.error(f"Failed to authenticate: {msg}")
             raise AuthError(msg)
+        if "message" in data:
+            msg = data["message"]
+            logger.error(f"Failed to authenticate: {msg}")
+            raise AuthError(msg)
         self._last_refresh = time.time()
         self._access_token = data["accessToken"]
         self._refresh_token = data["refreshToken"]
@@ -667,6 +671,10 @@ mutation refreshToken($input: RefreshTokenInput!) {
         data = result["refreshToken"]
         if "message" in result:
             msg = result["message"]
+            logger.error(f"Failed to get new token: {msg}")
+            raise AuthError(msg)
+        if "message" in data:
+            msg = data["message"]
             logger.error(f"Failed to get new token: {msg}")
             raise AuthError(msg)
         self._last_refresh = time.time()
