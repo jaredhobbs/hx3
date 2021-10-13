@@ -60,6 +60,11 @@ class FanMode:
     ALWAYS = "ALWAYS"
 
 
+class AccountStatus:
+    CONFIRMED = "CONFIRMED"
+    UNCONFIRMED = "UNCONFIRMED"
+
+
 class HxError(Exception):
     pass
 
@@ -304,6 +309,22 @@ class Controller:
         """
         return copy.deepcopy(self._data)
 
+    @property
+    def brand(self):
+        return self._location._brand
+
+    @property
+    def model(self):
+        return self._location._model
+
+    @property
+    def location_name(self):
+        return self._location._name
+
+    @property
+    def version(self):
+        return self._location._version
+
     def __repr__(self):
         return "Controller<%s:%s>" % (self.id, self.name)
 
@@ -316,6 +337,7 @@ class Location:
         self._name = None
         self._brand = None
         self._model = None
+        self._version = None
         self._latitude = None
         self._longitude = None
 
@@ -326,6 +348,7 @@ class Location:
         self._name = api_response["name"]
         self._brand = api_response["brand"]
         self._model = api_response["model"]
+        self._version = api_response["version"]["bootloader"]
         self._latitude = api_response["lat"]
         self._longitude = api_response["lng"]
         controllers = api_response["controllers"]
@@ -574,6 +597,8 @@ class Hx3Api:
         self._temperature_unit = None
         self._locations = {}
         if self._access_token:
+            self._ttl = None
+            self._get_new_token()
             self._me()
         elif self._token:
             self._authenticate()
@@ -698,6 +723,11 @@ mutation refreshToken($input: RefreshTokenInput!) {
     model
     name
     controllers {self._controller_data}
+    version {{
+      application
+      bootloader
+      outdoorControl
+    }}
   }}
 }}"""
         result = self._execute(query)

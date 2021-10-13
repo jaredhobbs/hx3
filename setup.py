@@ -32,7 +32,7 @@ PACKAGES = find_packages()
 
 setup(
     name=PROJECT_PACKAGE_NAME,
-    version='0.1.5',
+    version='0.1.6',
     url=PROJECT_URL,
     project_urls=PROJECT_URLS,
     author=PROJECT_AUTHOR,
