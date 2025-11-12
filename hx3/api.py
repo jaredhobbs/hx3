@@ -580,7 +580,7 @@ class Hx3Api:
         self._email = email
         self._token = token
         self._transport = RequestsHTTPTransport(
-            url="https://hx.kraftful.cloud",
+            url="https://hx-thermostat.herokuapp.com",
             use_json=True,
             headers={"Content-type": "application/json"},
             verify=True,
