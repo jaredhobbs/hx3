@@ -289,7 +289,7 @@ class Controller:
     @property
     def current_humidity(self):
         """The current measured ambient humidity"""
-        return self._data["humidity"]
+        return float(self._data["humidity"] or 0) * 100
 
     @property
     def outdoor_temperature(self):
