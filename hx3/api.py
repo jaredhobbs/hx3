@@ -60,6 +60,11 @@ class FanMode:
     ALWAYS = "ALWAYS"
 
 
+class HumidificationMode:
+    AUTO = "AUTO"
+    MANUAL = "MANUAL"
+
+
 class AccountStatus:
     CONFIRMED = "CONFIRMED"
     UNCONFIRMED = "UNCONFIRMED"
@@ -166,6 +171,106 @@ class Controller:
     @property
     def humidification(self):
         return self._data["humidification"]
+
+    @property
+    def humidify_setpoint(self):
+        """The target humidity to maintain when humidifying"""
+        return self._data["humidification"]["value"]
+
+    @humidify_setpoint.setter
+    def humidify_setpoint(self, value):
+        lower = self._data["humidification"]["min"]
+        upper = self._data["humidification"]["max"]
+        if value > upper or value < lower:
+            raise HxError(f"Setpoint outside range {lower}-{upper}")
+        self._client._set_thermostat_data(
+            {
+                "func": "changeHumidification",
+                "input_type": "ChangeHumidificationInput!",
+                "input_vals": {
+                    "id": self.id,
+                    "value": value,
+                },
+                "errors": ["NotFound", "NotSupported"],
+            },
+        )
+        self._data["humidification"]["value"] = value
+
+    @property
+    def humidification_mode(self):
+        """AUTO or MANUAL: how the humidify setpoint is applied"""
+        return self._data["humidification"]["mode"]
+
+    @humidification_mode.setter
+    def humidification_mode(self, mode):
+        if mode not in (HumidificationMode.AUTO, HumidificationMode.MANUAL):
+            raise HxError(f"Invalid humidification mode `{mode}`")
+        if self.humidification_mode == mode:
+            return
+        self._client._set_thermostat_data(
+            {
+                "func": "changeHumidificationMode",
+                "input_type": "ChangeHumidificationModeInput!",
+                "input_vals": {
+                    "id": self.id,
+                    "mode": mode,
+                },
+                "errors": ["NotFound", "NotSupported"],
+            },
+        )
+        self._data["humidification"]["mode"] = mode
+
+    @property
+    def dehumidification(self):
+        return self._data["dehumidification"]
+
+    @property
+    def dehumidify_setpoint(self):
+        """The target humidity to maintain when dehumidifying"""
+        return self._data["dehumidification"]["value"]
+
+    @dehumidify_setpoint.setter
+    def dehumidify_setpoint(self, value):
+        lower = self._data["dehumidification"]["min"]
+        upper = self._data["dehumidification"]["max"]
+        if value > upper or value < lower:
+            raise HxError(f"Setpoint outside range {lower}-{upper}")
+        self._client._set_thermostat_data(
+            {
+                "func": "changeDehumidification",
+                "input_type": "ChangeHumidificationInput!",
+                "input_vals": {
+                    "id": self.id,
+                    "value": value,
+                },
+                "errors": ["NotFound", "NotSupported"],
+            },
+        )
+        self._data["dehumidification"]["value"] = value
+
+    @property
+    def dehumidification_mode(self):
+        """AUTO or MANUAL: how the dehumidify setpoint is applied"""
+        return self._data["dehumidification"]["mode"]
+
+    @dehumidification_mode.setter
+    def dehumidification_mode(self, mode):
+        if mode not in (HumidificationMode.AUTO, HumidificationMode.MANUAL):
+            raise HxError(f"Invalid dehumidification mode `{mode}`")
+        if self.dehumidification_mode == mode:
+            return
+        self._client._set_thermostat_data(
+            {
+                "func": "changeDehumidificationMode",
+                "input_type": "ChangeHumidificationModeInput!",
+                "input_vals": {
+                    "id": self.id,
+                    "mode": mode,
+                },
+                "errors": ["NotFound", "NotSupported"],
+            },
+        )
+        self._data["dehumidification"]["mode"] = mode
 
     @property
     def fan_running(self):
